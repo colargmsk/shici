@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>拾词 — 每天捡起一个单词</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ============================
    全局基础样式
@@ -454,6 +455,75 @@ body.dark .mode-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 }
 .speak-btn:hover { background: var(--bg-subtle); color: var(--text); }
 .speak-btn.speaking { color: var(--green); }
+
+/* 排行榜 */
+.lb-tab {
+  padding: 8px 0; border: none; background: var(--bg-subtle); color: var(--text-sub);
+  font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.lb-tab.active { background: var(--text); color: var(--bg); }
+body.dark .lb-tab.active { background: #f0f0f0; color: #0d0d0d; }
+.lb-row {
+  display: flex; align-items: center; padding: 10px 12px; border-radius: 8px;
+  margin-bottom: 4px; font-size: 14px; transition: background 0.15s;
+}
+.lb-row:hover { background: var(--bg-subtle); }
+.lb-rank { width: 36px; font-weight: 700; text-align: center; flex-shrink: 0; }
+.lb-medal { font-size: 20px; width: 36px; text-align: center; flex-shrink: 0; }
+.lb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.lb-value { flex-shrink: 0; color: var(--text-sub); font-weight: 600; margin-left: 8px; }
+.lb-row.gold   { background: #FFF8E1; }
+.lb-row.silver { background: #F5F5F5; }
+.lb-row.bronze { background: #FDF2E0; }
+.lb-row.self   { background: var(--green-bg); border-left: 3px solid var(--green); padding-left: 9px; }
+body.dark .lb-row.gold   { background: #3E3500; }
+body.dark .lb-row.silver { background: #2A2A2A; }
+body.dark .lb-row.bronze { background: #3E2E00; }
+body.dark .lb-row.self   { background: #0a3d20; }
+
+/* 云词库 */
+.wb-filter-btn {
+  padding: 3px 10px; border: 1px solid var(--border); border-radius: 12px;
+  font-size: 12px; cursor: pointer; background: var(--bg); color: var(--text-sub);
+  font-family: inherit; transition: all 0.15s;
+}
+.wb-filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+body.dark .wb-filter-btn.active { background: #f0f0f0; color: #0d0d0d; }
+.wb-card {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+}
+.wb-card:hover { border-color: #9ca3af; }
+.wb-card.expanded { border-color: var(--text); }
+.wb-card-header { display: flex; align-items: center; justify-content: space-between; }
+.wb-card-name { font-weight: 600; font-size: 14px; }
+.wb-card-meta { font-size: 12px; color: var(--text-sub); }
+.wb-card-body { display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+.wb-card.expanded .wb-card-body { display: block; }
+.wb-word-row {
+  display: flex; align-items: center; padding: 4px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border); gap: 8px;
+}
+.wb-word-row:last-child { border-bottom: none; }
+.wb-word-en { font-weight: 600; min-width: 90px; }
+.wb-word-pos { font-style: italic; color: var(--text-sub); font-size: 11px; min-width: 32px; }
+.wb-word-cn { flex: 1; color: var(--text-sub); font-size: 12px; }
+.wb-add-btn {
+  padding: 2px 10px; border: 1px solid var(--green); border-radius: 10px;
+  font-size: 11px; cursor: pointer; background: transparent; color: var(--green);
+  font-family: inherit; white-space: nowrap; transition: all 0.15s;
+}
+.wb-add-btn:hover { background: var(--green); color: #fff; }
+.wb-add-btn.done { border-color: var(--border); color: var(--text-sub); cursor: default; opacity: 0.5; }
+.wb-add-btn.done:hover { background: transparent; color: var(--text-sub); }
+.wb-import-all {
+  display: block; width: 100%; margin-top: 8px; padding: 8px;
+  border: 1px dashed var(--green); border-radius: 8px;
+  font-size: 13px; cursor: pointer; background: var(--green-bg); color: var(--green);
+  font-family: inherit; font-weight: 600; transition: all 0.15s;
+}
+.wb-import-all:hover { background: var(--green); color: #fff; }
+body.dark .wb-import-all:hover { color: #0d0d0d; }
 .pos-tag { font-size: 12px; font-style: italic; color: var(--text-sub); margin-left: 2px; }
 .pos-btn {
   padding: 4px 10px; border: 1px solid var(--border); border-radius: 14px;
@@ -487,6 +557,40 @@ body.dark .header { background: rgba(13,13,13,0.9); }
 body.dark .btn-primary { background: #f0f0f0; color: #0d0d0d; border-color: #f0f0f0; }
 body.dark .btn-primary:hover { background: #d0d0d0; }
 body.dark .modal-overlay { background: rgba(0,0,0,0.7); }
+
+/* 登录遮罩 */
+#login-overlay {
+  position: fixed; inset: 0; background: var(--bg); z-index: 300;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+}
+#login-overlay.dimmed { background: rgba(0,0,0,0.5); }
+.login-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 16px;
+  padding: 32px 28px; max-width: 360px; width: 90%; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  text-align: center;
+}
+body.dark .login-card { box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+.login-card .brand { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.login-card .slogan { font-size: 13px; color: var(--text-sub); margin-bottom: 24px; }
+.login-card .input { margin-bottom: 10px; text-align: left; }
+.login-card .btn { width: 100%; margin-bottom: 8px; }
+.login-error { font-size: 12px; color: var(--red); min-height: 18px; margin-bottom: 4px; }
+.login-switch { font-size: 12px; color: var(--text-sub); cursor: pointer; margin-top: 4px; }
+.login-switch:hover { text-decoration: underline; }
+.login-skip { font-size: 12px; color: var(--text-sub); margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.login-skip a { color: var(--text-sub); text-decoration: underline; cursor: pointer; }
+
+/* 同步横幅（底部） */
+#sync-banner {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 250;
+  font-size: 13px; text-align: center; padding: 6px; display: none;
+  animation: slideUpIn 0.3s ease;
+}
+#sync-banner.out { animation: slideDownOut 0.3s ease forwards; }
+#sync-banner.ok  { background: var(--green-bg); color: var(--green); }
+#sync-banner.err { background: var(--danger-bg); color: var(--red); }
+@keyframes slideUpIn    { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes slideDownOut { from { transform: translateY(0); } to { transform: translateY(100%); } }
 body.dark .quiz-option { color: #f0f0f0; }
 body.dark .quiz-option:hover { border-color: #555; background: #1a1a1a; }
 body.dark .quiz-option.selected { border-color: #f0f0f0; background: #1a1a1a; }
@@ -550,6 +654,7 @@ body.dark input[type="checkbox"] {
       <button class="active" data-tab="quiz" style="position:relative">测试<span id="daily-dot" style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none"></span></button>
       <button data-tab="words">单词库</button>
       <button data-tab="stats">统计</button>
+      <button data-tab="leaderboard">排行榜</button>
       <button data-tab="settings">设置</button>
     </nav>
   </div>
@@ -565,7 +670,7 @@ body.dark input[type="checkbox"] {
       <p style="font-size:13px;color:var(--text-sub);margin-bottom:10px;font-weight:500">➕ 添加单词</p>
       <div class="input-row">
         <input class="input" id="input-en" placeholder="英文单词" autocomplete="off">
-        <input class="input" id="input-cn" placeholder="中文释义（多个用；或,隔开）" autocomplete="off">
+        <input class="input" id="input-cn" placeholder="中文释义（多个用；或 , 隔开）" autocomplete="off">
       </div>
       <div style="margin-bottom:8px">
         <span style="font-size:12px;color:var(--text-sub);margin-right:4px">词性：</span>
@@ -583,32 +688,12 @@ body.dark input[type="checkbox"] {
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" id="btn-add">添加</button>
         <button class="btn btn-sm" id="btn-import-toggle">批量导入</button>
+        <button class="btn btn-sm" id="btn-wordbank">☁️ 云词库</button>
         <button class="btn btn-sm" id="btn-export-copy">复制导出</button>
         <button class="btn btn-sm" id="btn-export-file">下载文件</button>
         <button class="btn btn-sm" id="btn-import-file">上传文件</button>
       </div>
 
-      <!-- 批量导入区域 -->
-      <div class="import-area" id="import-area" style="display:none">
-        <p class="hint">每行一个单词，格式：<br>🔹 <code>英文: 中文1; 中文2</code><br>🔹 <code>英文, 中文1, 中文2</code></p>
-        <textarea class="textarea" id="import-text" placeholder="abandon: 放弃; 抛弃&#10;book, 书, 预订&#10;celebrate, 庆祝"></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-          <button class="btn btn-primary btn-sm" id="btn-import-do">确认导入</button>
-          <button class="btn btn-sm" id="btn-import-cancel">取消</button>
-          <span style="font-size:13px;color:var(--text-sub)" id="import-preview"></span>
-        </div>
-      </div>
-
-      <!-- 从剪贴板导入区域 -->
-      <div class="import-area" id="paste-area" style="display:none">
-        <p class="hint">把之前复制的 JSON 文本粘贴到下面，然后点"确认导入"</p>
-        <textarea class="textarea" id="paste-text" placeholder="在这里粘贴 JSON 文本..."></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-          <button class="btn btn-primary btn-sm" id="btn-paste-do">确认导入</button>
-          <button class="btn btn-sm" id="btn-paste-cancel">取消</button>
-          <span style="font-size:13px;color:var(--text-sub)" id="paste-preview"></span>
-        </div>
-      </div>
 
       <input type="file" id="file-input" accept=".json" style="display:none">
 
@@ -697,13 +782,56 @@ body.dark input[type="checkbox"] {
     </div>
   </section>
 
+  <!-- ===== 排行榜页 ===== -->
+  <section class="page" id="page-leaderboard">
+    <div id="leaderboard-content">
+      <div style="text-align:center;margin-bottom:16px">
+        <p style="font-size:18px;font-weight:700">🏆 排行榜</p>
+        <p style="font-size:13px;color:var(--text-sub)">与所有拾词用户一起进步！</p>
+      </div>
+
+      <!-- 子标签切换 -->
+      <div style="display:flex;gap:0;margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <button class="lb-tab active" data-lb="streak" style="flex:1">🔥 打卡天数</button>
+        <button class="lb-tab" data-lb="tests" style="flex:1">📚 测试总数</button>
+      </div>
+
+      <!-- 排行列表 -->
+      <div id="lb-list"></div>
+
+      <!-- 自己的排名（如果不在前50） -->
+      <div id="lb-self" style="margin-top:12px"></div>
+
+      <!-- 未登录提示 -->
+      <div id="lb-login-hint" style="text-align:center;padding:32px 0;display:none">
+        <p style="font-size:28px;margin-bottom:8px">🔒</p>
+        <p style="font-size:14px;color:var(--text-sub);margin-bottom:12px">登录后参与排名</p>
+        <button class="btn btn-primary btn-sm" onclick="showLogin()">登录同步数据</button>
+      </div>
+
+      <!-- 加载中 -->
+      <div id="lb-loading" style="text-align:center;padding:32px 0;display:none">
+        <p style="font-size:28px;margin-bottom:8px">⏳</p>
+        <p style="font-size:14px;color:var(--text-sub)">加载排行榜中...</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== 设置页 ===== -->
   <section class="page" id="page-settings">
     <div class="card">
       <p style="font-size:13px;color:var(--text-sub);margin-bottom:14px;font-weight:500">👤 个人信息</p>
+    <div id="nickname-group">
       <label style="font-size:13px;color:var(--text-sub);display:block;margin-bottom:4px">昵称</label>
-      <input class="input" id="set-nickname" placeholder="输入你的昵称" style="margin-bottom:4px">
-      <p style="font-size:11px;color:var(--text-sub);margin-bottom:14px">设置后将在测试页面显示个性化问候语</p>
+      <div id="nickname-edit">
+        <input class="input" id="set-nickname" placeholder="输入你的昵称" style="margin-bottom:4px">
+        <p style="font-size:11px;color:var(--text-sub);margin-bottom:14px" id="nickname-hint">设置后将在测试页面显示个性化问候语</p>
+      </div>
+      <div id="nickname-locked" style="display:none">
+        <p style="font-size:14px;font-weight:600;margin-bottom:4px" id="nickname-locked-name"></p>
+        <p style="font-size:11px;color:var(--green);margin-bottom:14px">☁️ 昵称已与云端同步</p>
+      </div>
+    </div>
     </div>
 
     <div class="card">
@@ -721,6 +849,10 @@ body.dark input[type="checkbox"] {
       </select>
     </div>
 
+    <div class="card" id="cloud-status" style="text-align:center">
+      <p style="font-size:13px;color:var(--text-sub)">☁️ 加载中...</p>
+    </div>
+
     <div class="card" style="text-align:center">
       <p style="font-size:14px;font-weight:600">📝 拾词</p>
       <p style="font-size:12px;color:var(--text-sub);margin-top:4px">每天捡起一个单词</p>
@@ -735,6 +867,23 @@ body.dark input[type="checkbox"] {
   </section>
 
 </div>
+
+<!-- ===== 登录/注册遮罩 ===== -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="brand">📚 拾词</div>
+    <div class="slogan">每天捡起一个单词</div>
+    <div class="login-error" id="login-error"></div>
+    <input class="input" id="login-username" placeholder="用户名" autocomplete="username">
+    <input class="input" id="login-password" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <button class="btn btn-primary" id="btn-login-do">登 录</button>
+    <div class="login-switch" id="login-switch">没有账号？<a>注册新账号</a></div>
+    <div class="login-skip"><a id="login-skip">离线使用（不同步）</a></div>
+  </div>
+</div>
+
+<!-- ===== 同步状态横幅 ===== -->
+<div id="sync-banner"></div>
 
 <!-- ===== 结束确认弹窗 ===== -->
 <div class="modal-overlay" id="modal-end-confirm" style="display:none">
@@ -766,6 +915,70 @@ body.dark input[type="checkbox"] {
   </div>
 </div>
 
+<!-- ===== 批量导入弹窗 ===== -->
+<div class="modal-overlay" id="modal-import-text" style="display:none">
+  <div class="modal">
+    <div class="modal-title">📥 批量导入</div>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:10px">
+      每行一个单词，格式：<code>英文: 中文1; 中文2</code> 或 <code>英文, 中文1, 中文2</code>
+    </p>
+    <textarea class="textarea" id="import-text" placeholder="abandon: 放弃; 抛弃&#10;book, 书, 预订&#10;celebrate, 庆祝" style="height:180px"></textarea>
+    <p style="font-size:12px;color:var(--text-sub);margin-top:6px;min-height:18px" id="import-preview"></p>
+    <div class="modal-actions">
+      <button class="btn" id="btn-import-cancel">取消</button>
+      <button class="btn btn-primary" id="btn-import-do">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 粘贴导入弹窗 ===== -->
+<div class="modal-overlay" id="modal-import-paste" style="display:none">
+  <div class="modal">
+    <div class="modal-title">📋 粘贴导入</div>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:10px">
+      把之前复制的 JSON 备份文本粘贴到下面，然后点确认导入。
+    </p>
+    <textarea class="textarea" id="paste-text" placeholder="在这里粘贴 JSON 文本..." style="height:180px"></textarea>
+    <p style="font-size:12px;color:var(--text-sub);margin-top:6px;min-height:18px" id="paste-preview"></p>
+    <div class="modal-actions">
+      <button class="btn" id="btn-paste-cancel">取消</button>
+      <button class="btn btn-primary" id="btn-paste-do">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 云词库弹窗 ===== -->
+<div class="modal-overlay" id="modal-wordbank" style="display:none">
+  <div class="modal" style="max-width:540px;width:95%">
+    <div class="modal-title">☁️ 云词库</div>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:10px">
+      选择一个词库，预览单词后导入到你的单词库
+    </p>
+
+    <!-- 分类筛选 -->
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px" id="wb-filters">
+      <button class="wb-filter-btn active" data-cat="">全部</button>
+      <button class="wb-filter-btn" data-cat="初中">初中</button>
+      <button class="wb-filter-btn" data-cat="高中">高中</button>
+      <button class="wb-filter-btn" data-cat="四级">四级</button>
+      <button class="wb-filter-btn" data-cat="六级">六级</button>
+    </div>
+
+    <!-- 词库列表 -->
+    <div id="wb-list" style="max-height:400px;overflow-y:auto"></div>
+
+    <!-- 导入模式 -->
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);display:flex;gap:16px;justify-content:center">
+      <label style="cursor:pointer"><input type="radio" name="wb-import-mode" value="merge" checked style="accent-color:var(--text)"> 合并（保留现有单词）</label>
+      <label style="cursor:pointer"><input type="radio" name="wb-import-mode" value="replace" style="accent-color:var(--text)"> 替换（清空后导入）</label>
+    </div>
+
+    <div class="modal-actions" style="margin-top:10px">
+      <button class="btn" id="btn-wb-close">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== 导出文本弹窗 ===== -->
 <div class="modal-overlay" id="modal-export" style="display:none">
   <div class="modal">
@@ -782,6 +995,305 @@ body.dark input[type="checkbox"] {
 </div>
 
 <script>
+// ============================================
+// 0. Supabase 云同步
+// ============================================
+
+// ⚠️ 部署前请替换为你的 Supabase 项目信息
+// 去 https://supabase.com 创建项目，在 Settings → API 中获取
+var SB_URL = 'https://dcydrnosnrhtguvttvxq.supabase.co';
+var SB_KEY = 'sb_publishable_xkK5tyNTdsC7WIWkuJeN5A_qxRR_Mj9';
+
+var _sb = null;
+var _cloudPushTimer = null;
+var _cloudSyncing = false;
+
+// Supabase 初始化
+function initCloud() {
+  if (!SB_URL || SB_URL.indexOf('YOUR_PROJECT') !== -1) { _sb = null; return; }
+  try {
+    _sb = supabase.createClient(SB_URL, SB_KEY);
+  } catch(e) {
+    _sb = null;
+  }
+}
+
+// 检查是否已登录（Supabase 会持久化会话）
+function isCloudLoggedIn() {
+  return _sb && _sb.auth && _sb.auth.getSession && !!localStorage.getItem('sb-logged-in');
+}
+
+// 获取当前用户的显示名
+function cloudUsername() {
+  return localStorage.getItem('sb-username') || '';
+}
+
+// 登录
+function cloudLogin(username, password) {
+  if (!_sb) { showLoginError('云服务未配置，请先设置 Supabase'); return; }
+  var btn = document.getElementById('btn-login-do');
+  btn.disabled = true; btn.textContent = '登录中...';
+  showLoginError('');
+  var email = username + '@shici.user';
+  _sb.auth.signInWithPassword({ email: email, password: password }).then(function(res) {
+    if (res.error) {
+      btn.disabled = false; btn.textContent = '登 录';
+      if (res.error.message.indexOf('Invalid login') !== -1) showLoginError('用户名或密码错误');
+      else showLoginError('登录失败：' + res.error.message);
+      return;
+    }
+    onLoginSuccess(username);
+  });
+}
+
+// 注册
+function cloudRegister(username, password) {
+  if (!_sb) { showLoginError('云服务未配置'); return; }
+  if (password.length < 6) { showLoginError('密码至少需要6位'); return; }
+  if (!username.trim()) { showLoginError('请输入用户名'); return; }
+  username = username.trim();
+  // 只允许字母数字和下划线
+  if (!/^[a-zA-Z0-9_一-鿿]+$/.test(username)) { showLoginError('用户名只能包含中英文、数字和下划线'); return; }
+  var btn = document.getElementById('btn-login-do');
+  btn.disabled = true; btn.textContent = '注册中...';
+  showLoginError('');
+  var email = username + '@shici.user';
+  _sb.auth.signUp({
+    email: email,
+    password: password,
+    options: { data: { username: username } }
+  }).then(function(res) {
+    if (res.error) {
+      btn.disabled = false; btn.textContent = '注 册';
+      if (res.error.message.indexOf('already') !== -1) showLoginError('该用户名已被注册');
+      else showLoginError('注册失败：' + res.error.message);
+      return;
+    }
+    // Supabase signUp 可能返回 user 或 session，取决于邮箱确认设置
+    if (res.data.user) {
+      // 邮箱确认已关闭，直接登录
+      onLoginSuccess(username);
+    } else {
+      // 需要确认邮箱（不应该发生，因为我们用假邮箱）
+      showLoginError('注册遇到问题，请稍后重试');
+      btn.disabled = false; btn.textContent = '注 册';
+    }
+  });
+}
+
+function onLoginSuccess(username) {
+  localStorage.setItem('sb-logged-in', '1');
+  localStorage.setItem('sb-username', username);
+  document.getElementById('login-overlay').style.display = 'none';
+  appData.settings.cloudUser = username;
+  saveData();
+  // 从云端拉取数据
+  cloudPull(function() {
+    loadData();
+    renderWordList();
+    renderStats();
+    renderQuizPage();
+    renderSettingsPage();
+    renderLoginStatus();
+  });
+}
+
+// 退出登录
+function cloudLogout() {
+  if (!confirm('确定要退出登录吗？\n本地数据不会丢失，下次登录后可继续同步。')) return;
+  if (_sb && _sb.auth) _sb.auth.signOut();
+  localStorage.removeItem('sb-logged-in');
+  localStorage.removeItem('sb-username');
+  appData.settings.cloudUser = null;
+  appData.settings.lastSyncAt = null;
+  saveData();
+  renderSettingsPage();
+  renderLoginStatus();
+  toast('已退出登录，切换到离线模式');
+}
+
+// 从云端拉取数据
+function cloudPull(callback) {
+  if (!isCloudLoggedIn()) { if (callback) callback(); return; }
+  _cloudSyncing = true;
+  _sb.from('sync_data').select('data,updated_at').maybeSingle().then(function(res) {
+    _cloudSyncing = false;
+    if (res.data && res.data.data) {
+      try {
+        var cloudData = typeof res.data.data === 'string' ? JSON.parse(res.data.data) : res.data.data;
+        var cloudTime = new Date(res.data.updated_at).getTime();
+        var localTime = appData.settings.lastSyncAt || 0;
+        if (cloudTime > localTime) {
+          appData = cloudData;
+          appData.settings.lastSyncAt = cloudTime;
+          saveData();
+          if (callback) callback();
+          showSyncBanner('数据已从云端同步', false);
+          return;
+        }
+      } catch(e) {}
+    }
+    appData.settings.lastSyncAt = Date.now();
+    saveData();
+    if (callback) callback();
+  }).catch(function(err) {
+    _cloudSyncing = false;
+    showSyncBanner('同步失败，使用本地数据', true);
+    if (callback) callback();
+  });
+}
+
+// 上传数据到云端（throttle 3秒）
+function scheduleCloudPush() {
+  if (!isCloudLoggedIn()) return;
+  if (_cloudPushTimer) clearTimeout(_cloudPushTimer);
+  _cloudPushTimer = setTimeout(cloudPush, 3000);
+}
+
+function cloudPush() {
+  if (!isCloudLoggedIn() || _cloudSyncing) return;
+  _cloudSyncing = true;
+  appData.settings.lastSyncAt = Date.now();
+  _sb.auth.getSession().then(function(sessionRes) {
+    var userId = sessionRes.data && sessionRes.data.session
+      ? sessionRes.data.session.user.id
+      : null;
+    if (!userId) { _cloudSyncing = false; return; }
+    return _sb.from('sync_data').upsert({
+      user_id: userId,
+      data: appData,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  }).then(function(res) {
+    _cloudSyncing = false;
+    if (res && res.error) {
+      showSyncBanner('同步失败，数据已保存到本地', true);
+    } else {
+      showSyncBanner('', false);
+    }
+  }).catch(function(err) {
+    _cloudSyncing = false;
+    showSyncBanner('同步失败，数据已保存到本地', true);
+  });
+}
+
+// 上传排行榜数据
+function pushLeaderboard() {
+  if (!isCloudLoggedIn()) return;
+  var totalTests = 0;
+  appData.words.forEach(function(w) { totalTests += w.stats.totalAttempts; });
+  _sb.auth.getSession().then(function(sessionRes) {
+    var userId = sessionRes.data && sessionRes.data.session
+      ? sessionRes.data.session.user.id : null;
+    if (!userId) return;
+    return _sb.from('leaderboard').upsert({
+      user_id: userId,
+      username: cloudUsername(),
+      daily_streak: appData.settings.dailyStreak || 0,
+      total_tests: totalTests,
+      show_on_board: appData.settings.showOnBoard !== false
+    }, { onConflict: 'user_id' });
+  }).catch(function(err) {
+    console.log('排行榜上传失败:', err.message);
+  });
+}
+
+// 显示/隐藏同步状态横幅（底部滑入，绿色=成功，红色=失败）
+var _syncBannerTimer = null;
+function showSyncBanner(msg, isError) {
+  var banner = document.getElementById('sync-banner');
+  if (_syncBannerTimer) { clearTimeout(_syncBannerTimer); _syncBannerTimer = null; }
+  if (!msg) {
+    // 滑出后隐藏
+    banner.classList.add('out');
+    _syncBannerTimer = setTimeout(function() { banner.style.display = 'none'; banner.classList.remove('out'); }, 300);
+    return;
+  }
+  // 如果有旧消息正在显示，先瞬间隐藏再重新显示
+  if (banner.style.display === 'block') {
+    banner.style.display = 'none';
+    banner.classList.remove('out');
+  }
+  banner.textContent = (isError ? '⚠️ ' : '✅ ') + msg;
+  banner.className = isError ? 'err' : 'ok';
+  banner.style.display = 'block';
+  // 几秒后滑出
+  var delay = isError ? 5000 : 2500;
+  _syncBannerTimer = setTimeout(function() {
+    showSyncBanner('');
+  }, delay);
+}
+
+// 显示登录错误
+function showLoginError(msg) {
+  document.getElementById('login-error').textContent = msg;
+}
+
+// 渲染设置页的登录状态
+function renderLoginStatus() {
+  var el = document.getElementById('cloud-status');
+  if (!el) return;
+  if (isCloudLoggedIn()) {
+    var lastSync = appData.settings.lastSyncAt
+      ? timeAgo(appData.settings.lastSyncAt)
+      : '从未同步';
+    var uname = cloudUsername();
+    var showOn = appData.settings.showOnBoard !== false;
+    el.innerHTML = '<p style="font-size:13px;color:var(--green);font-weight:500">☁️ 已登录：' + escapeHtml(uname) + '</p>'
+      + '<p style="font-size:12px;color:var(--text-sub)">上次同步：' + lastSync + '</p>'
+      + '<div style="margin-top:8px;display:flex;gap:8px;justify-content:center">'
+      + '<button class="btn btn-sm" onclick="pushLeaderboard();cloudPull(function(){ renderWordList(); renderStats(); renderQuizPage(); toast(\'同步完成\'); })">🔄 手动同步</button>'
+      + '<button class="btn btn-sm" onclick="cloudLogout()">退出登录</button>'
+      + '</div>'
+      + '<label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:12px;color:var(--text-sub);cursor:pointer">'
+      + '<input type="checkbox" id="cb-show-on-board" ' + (showOn ? 'checked' : '') + ' style="width:14px;height:14px;cursor:pointer;accent-color:var(--text)"> 显示在排行榜上'
+      + '</label>';
+    // 绑定排行榜开关事件
+    setTimeout(function() {
+      var cb = document.getElementById('cb-show-on-board');
+      if (cb) {
+        cb.addEventListener('change', function() {
+          appData.settings.showOnBoard = this.checked;
+          saveData();
+          pushLeaderboard();
+        });
+      }
+    }, 0);
+    // 锁定昵称为云端账号名
+    var editEl = document.getElementById('nickname-edit');
+    var lockEl = document.getElementById('nickname-locked');
+    var lockName = document.getElementById('nickname-locked-name');
+    if (editEl) editEl.style.display = 'none';
+    if (lockEl) lockEl.style.display = 'block';
+    if (lockName) lockName.textContent = uname;
+  } else {
+    var offlineMsg = appData.settings.cloudUser === null && localStorage.getItem('sb-logged-in') === null
+      ? '离线模式'
+      : '未登录，数据仅保存在本地';
+    el.innerHTML = '<p style="font-size:13px;color:var(--text-sub)">☁️ ' + offlineMsg + '</p>'
+      + '<button class="btn btn-sm" style="margin-top:6px" onclick="showLogin()">登录同步数据</button>';
+    // 恢复昵称输入
+    var editEl2 = document.getElementById('nickname-edit');
+    var lockEl2 = document.getElementById('nickname-locked');
+    if (editEl2) editEl2.style.display = 'block';
+    if (lockEl2) lockEl2.style.display = 'none';
+  }
+}
+
+// 显示登录遮罩
+function showLogin() {
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  showLoginError('');
+  document.getElementById('btn-login-do').textContent = '登 录';
+  document.getElementById('btn-login-do').disabled = false;
+  document.getElementById('login-switch').innerHTML = '没有账号？<a>注册新账号</a>';
+  _isRegistering = false;
+}
+
+var _isRegistering = false;
+
 // ============================================
 // 1. 数据管理
 // ============================================
@@ -819,14 +1331,16 @@ function getDefaultData() {
       lastDailyDate: null,
       dailyStreak: 0,
       highestStreak: 0,
-      achievements: {}
+      achievements: {},
+      hasCompletedQuiz: false,
+      showOnBoard: true
     }
   };
 }
 
 // 成就定义
 var ACHIEVEMENTS = [
-  { id: 'first-test',    name: '初次挑战',   desc: '完成第一次测试',           check: function() { return true; } },
+  { id: 'first-test',    name: '初次挑战',   desc: '完成第一次测试',           check: function() { return appData.settings.hasCompletedQuiz; } },
   { id: 'streak-3',      name: '三天打鱼',   desc: '连续打卡 3 天',            check: function() { return appData.settings.dailyStreak >= 3; } },
   { id: 'streak-7',      name: '周冠军',     desc: '连续打卡 7 天',            check: function() { return appData.settings.dailyStreak >= 7; } },
   { id: 'streak-30',     name: '月之星',     desc: '连续打卡 30 天',           check: function() { return appData.settings.dailyStreak >= 30; } },
@@ -892,6 +1406,7 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  scheduleCloudPush();
 }
 
 function genId() {
@@ -963,6 +1478,7 @@ document.querySelectorAll('.nav button').forEach(btn => {
     if (btn.dataset.tab === 'words') renderWordList();
     if (btn.dataset.tab === 'quiz') renderQuizPage();
     if (btn.dataset.tab === 'stats') renderStats();
+    if (btn.dataset.tab === 'leaderboard') renderLeaderboard();
     if (btn.dataset.tab === 'settings') renderSettingsPage();
   });
 });
@@ -1380,14 +1896,26 @@ document.getElementById('search-input').addEventListener('input', function() {
 // ============================================
 // 5. 批量导入（文本粘贴）
 // ============================================
+var modalImportText = document.getElementById('modal-import-text');
+
 document.getElementById('btn-import-toggle').addEventListener('click', () => {
-  const area = document.getElementById('import-area');
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  modalImportText.style.display = 'flex';
+  document.getElementById('import-text').focus();
 });
 
 document.getElementById('btn-import-cancel').addEventListener('click', () => {
-  document.getElementById('import-area').style.display = 'none';
+  modalImportText.style.display = 'none';
   document.getElementById('import-text').value = '';
+  document.getElementById('import-preview').textContent = '';
+});
+
+// 点击遮罩关闭
+modalImportText.addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.style.display = 'none';
+    document.getElementById('import-text').value = '';
+    document.getElementById('import-preview').textContent = '';
+  }
 });
 
 document.getElementById('import-text').addEventListener('input', function() {
@@ -1466,8 +1994,9 @@ document.getElementById('btn-import-do').addEventListener('click', () => {
   }
 
   saveData();
-  document.getElementById('import-area').style.display = 'none';
+  modalImportText.style.display = 'none';
   document.getElementById('import-text').value = '';
+  document.getElementById('import-preview').textContent = '';
   renderWordList();
   toast('新增 ' + added + ' 个，合并 ' + merged + ' 个' + (skipped > 0 ? '，跳过 ' + skipped + ' 个无效行' : ''));
 });
@@ -1499,23 +2028,33 @@ document.getElementById('btn-export-copy-do').addEventListener('click', () => {
   modalExport.style.display = 'none';
 });
 
-// 粘贴导入区域
-let pasteAreaVisible = false;
-const pasteArea = document.getElementById('paste-area');
+// 粘贴导入弹窗
+var modalImportPaste = document.getElementById('modal-import-paste');
 
 // 在导出按钮旁加一个粘贴导入按钮（动态创建）
-const pasteBtn = document.createElement('button');
+var pasteBtn = document.createElement('button');
 pasteBtn.className = 'btn btn-sm';
 pasteBtn.textContent = '粘贴导入';
 pasteBtn.style.marginLeft = '4px';
-pasteBtn.addEventListener('click', () => {
-  pasteArea.style.display = pasteArea.style.display === 'none' ? 'block' : 'none';
+pasteBtn.addEventListener('click', function() {
+  modalImportPaste.style.display = 'flex';
+  document.getElementById('paste-text').focus();
 });
 document.getElementById('btn-export-copy').after(pasteBtn);
 
-document.getElementById('btn-paste-cancel').addEventListener('click', () => {
-  pasteArea.style.display = 'none';
+document.getElementById('btn-paste-cancel').addEventListener('click', function() {
+  modalImportPaste.style.display = 'none';
   document.getElementById('paste-text').value = '';
+  document.getElementById('paste-preview').textContent = '';
+});
+
+// 点击遮罩关闭
+modalImportPaste.addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.style.display = 'none';
+    document.getElementById('paste-text').value = '';
+    document.getElementById('paste-preview').textContent = '';
+  }
 });
 
 document.getElementById('btn-paste-do').addEventListener('click', () => {
@@ -1548,8 +2087,9 @@ document.getElementById('btn-paste-do').addEventListener('click', () => {
       toast(`已导入 ${imported.words.length} 个单词`);
     }
     saveData();
-    pasteArea.style.display = 'none';
+    modalImportPaste.style.display = 'none';
     document.getElementById('paste-text').value = '';
+    document.getElementById('paste-preview').textContent = '';
     renderWordList();
   } catch (err) {
     toast('导入失败：JSON 格式不正确，请检查');
@@ -1614,6 +2154,181 @@ document.getElementById('file-input').addEventListener('change', function() {
   reader.readAsText(file);
   this.value = '';
 });
+
+// ============================================
+// 云词库
+// ============================================
+var modalWordBank = document.getElementById('modal-wordbank');
+var _wbData = [];
+var _wbFilter = '';
+var _wbExpanded = {};
+
+// 打开云词库弹窗
+document.getElementById('btn-wordbank').addEventListener('click', function() {
+  if (!_sb) { toast('请先配置云同步（Supabase）'); return; }
+  modalWordBank.style.display = 'flex';
+  _wbFilter = '';
+  document.querySelectorAll('.wb-filter-btn').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-cat') === ''); });
+  _wbExpanded = {};
+  fetchWordBanks();
+});
+
+// 关闭云词库弹窗
+document.getElementById('btn-wb-close').addEventListener('click', function() {
+  modalWordBank.style.display = 'none';
+});
+modalWordBank.addEventListener('click', function(e) {
+  if (e.target === this) { modalWordBank.style.display = 'none'; }
+});
+
+// 分类筛选按钮
+document.getElementById('wb-filters').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('wb-filter-btn')) return;
+  document.querySelectorAll('.wb-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  e.target.classList.add('active');
+  _wbFilter = e.target.getAttribute('data-cat') || '';
+  _wbExpanded = {};
+  renderWordBankList();
+});
+
+// 拉取词库列表
+function fetchWordBanks() {
+  var listEl = document.getElementById('wb-list');
+  listEl.innerHTML = '<p style="text-align:center;color:var(--text-sub);padding:24px 0">⏳ 加载中...</p>';
+  var query = _sb.from('word_banks').select('*').order('category').order('difficulty');
+  query.then(function(res) {
+    _wbData = res.data || [];
+    renderWordBankList();
+  }).catch(function() {
+    listEl.innerHTML = '<p style="text-align:center;color:var(--red);padding:24px 0">加载失败，请检查网络</p>';
+  });
+}
+
+// 渲染词库卡片列表
+function renderWordBankList() {
+  var listEl = document.getElementById('wb-list');
+  var filtered = _wbFilter
+    ? _wbData.filter(function(b) { return b.category === _wbFilter; })
+    : _wbData;
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<p style="text-align:center;color:var(--text-sub);padding:24px 0">暂无词库，等待管理员添加</p>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(function(bank) {
+    var diffIcon = bank.difficulty === '基础' ? '⭐' : bank.difficulty === '进阶' ? '⭐⭐' : bank.difficulty === '拔高' ? '⭐⭐⭐' : '📝';
+    var isExpanded = _wbExpanded[bank.id];
+    var words = Array.isArray(bank.words) ? bank.words : (typeof bank.words === 'string' ? JSON.parse(bank.words) : []);
+    var myWords = appData.words.map(function(w) { return w.english.toLowerCase(); });
+
+    var bodyHtml = '';
+    if (isExpanded) {
+      var wordRows = words.map(function(w) {
+        var alreadyHave = myWords.indexOf(w.english.toLowerCase()) !== -1;
+        return '<div class="wb-word-row">'
+          + '<span class="wb-word-en">' + escapeHtml(w.english) + '</span>'
+          + '<span class="wb-word-pos">' + escapeHtml(w.pos || '') + '</span>'
+          + '<span class="wb-word-cn">' + escapeHtml((w.chinese || []).join('；')) + '</span>'
+          + (alreadyHave
+            ? '<button class="wb-add-btn done" disabled>已添加</button>'
+            : '<button class="wb-add-btn" data-wb-id="' + bank.id + '" data-en="' + escapeHtml(w.english) + '" data-cn="' + escapeHtml((w.chinese || []).join('；')) + '" data-pos="' + escapeHtml(w.pos || '') + '">+添加</button>')
+          + '</div>';
+      }).join('');
+
+      bodyHtml = '<div class="wb-card-body">'
+        + '<div style="max-height:300px;overflow-y:auto;margin-bottom:8px">' + wordRows + '</div>'
+        + '<button class="wb-import-all" data-wb-id="' + bank.id + '">📥 一键导入全部 ' + words.length + ' 个单词</button>'
+        + '</div>';
+    }
+
+    return '<div class="wb-card' + (isExpanded ? ' expanded' : '') + '" data-wb-id="' + bank.id + '">'
+      + '<div class="wb-card-header">'
+      + '<div><span class="wb-card-name">' + escapeHtml(bank.name) + '</span> <span style="font-size:12px;color:var(--text-sub)">' + diffIcon + ' ' + (bank.difficulty || '') + '</span></div>'
+      + '<span class="wb-card-meta">' + words.length + '词' + (isExpanded ? ' ▲' : ' ▼') + '</span>'
+      + '</div>'
+      + bodyHtml
+      + '</div>';
+  }).join('');
+
+  // 点击卡片展开/收起
+  listEl.querySelectorAll('.wb-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.classList.contains('wb-add-btn') || e.target.classList.contains('wb-import-all')) return;
+      var id = parseInt(card.getAttribute('data-wb-id'));
+      _wbExpanded[id] = !_wbExpanded[id];
+      renderWordBankList();
+    });
+  });
+
+  // 单独添加单词
+  listEl.querySelectorAll('.wb-add-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var en = this.getAttribute('data-en');
+      var cn = this.getAttribute('data-cn');
+      var pos = this.getAttribute('data-pos');
+      var cnList = cn.split('；').filter(Boolean);
+      var existing = appData.words.find(function(w) { return w.english.toLowerCase() === en.toLowerCase(); });
+      if (existing) {
+        existing.chinese = Array.from(new Set(existing.chinese.concat(cnList)));
+        toast('已合并到"' + en + '"');
+      } else {
+        appData.words.push({
+          id: genId(), english: en, chinese: cnList, pos: pos,
+          createdAt: Date.now(), stats: defaultStats()
+        });
+        toast('已添加"' + en + '"');
+      }
+      saveData();
+      // 重新渲染以更新"已添加"状态
+      var bankId = parseInt(this.getAttribute('data-wb-id'));
+      _wbExpanded[bankId] = true;
+      renderWordBankList();
+      renderWordList();
+    });
+  });
+
+  // 一键导入全部
+  listEl.querySelectorAll('.wb-import-all').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var bankId = parseInt(this.getAttribute('data-wb-id'));
+      var bank = _wbData.find(function(b) { return b.id === bankId; });
+      if (!bank) return;
+      var words = Array.isArray(bank.words) ? bank.words : (typeof bank.words === 'string' ? JSON.parse(bank.words) : []);
+      var mode = document.querySelector('input[name="wb-import-mode"]:checked');
+      var isReplace = mode && mode.value === 'replace';
+
+      if (isReplace) {
+        if (!confirm('确定要清空现有单词并用"' + bank.name + '"的 ' + words.length + ' 个单词替换吗？此操作不可撤销。')) return;
+        appData.words = [];
+      }
+
+      var added = 0, merged = 0;
+      words.forEach(function(w) {
+        var existing = appData.words.find(function(ew) { return ew.english.toLowerCase() === w.english.toLowerCase(); });
+        if (existing) {
+          existing.chinese = Array.from(new Set(existing.chinese.concat(w.chinese || [])));
+          if (w.pos && !existing.pos) existing.pos = w.pos;
+          merged++;
+        } else {
+          appData.words.push({
+            id: genId(), english: w.english, chinese: w.chinese || [],
+            pos: w.pos || '', createdAt: Date.now(), stats: defaultStats()
+          });
+          added++;
+        }
+      });
+      saveData();
+      renderWordList();
+      checkAchievements();
+      _wbExpanded[bankId] = false;
+      renderWordBankList();
+      toast('新增 ' + added + ' 个，合并 ' + merged + ' 个' + (isReplace ? '（已替换）' : ''));
+    });
+  });
+}
 
 // ============================================
 // 8. 结束确认弹窗（静态元素，加载时绑定）
@@ -2085,7 +2800,7 @@ function renderQuizPage() {
     '语言是思想的翅膀 🕊️',
     '每一个单词都是通往世界的钥匙 🗝️'
   ];
-  var nick = appData.settings.nickname || '同学';
+  var nick = (isCloudLoggedIn() ? cloudUsername() : appData.settings.nickname) || '同学';
   var greetMain = document.getElementById('greeting-main');
   var greetSub = document.getElementById('greeting-sub');
   var greetStreak = document.getElementById('greeting-streak');
@@ -2533,6 +3248,15 @@ function endQuiz() {
       saveData();
     }
 
+    // 标记是否完成了一局完整的测试
+    var isQuizCompleted = quiz.total ? (quiz.current >= quiz.total) : (quiz.current >= 5);
+    if (isQuizCompleted && !appData.settings.hasCompletedQuiz) {
+      appData.settings.hasCompletedQuiz = true;
+    }
+
+    // 上传排行榜数据
+    if (isQuizCompleted) pushLeaderboard();
+
     // 检查成就
     checkAchievements();
     if (quiz.correct === quiz.current && quiz.current >= 10) {
@@ -2596,6 +3320,108 @@ function goToStats() {
   quiz = null;
   document.querySelector('[data-tab="stats"]').click();
 }
+
+// ============================================
+// 排行榜
+// ============================================
+var _lbMode = 'streak'; // 'streak' | 'tests'
+
+function renderLeaderboard() {
+  var listEl = document.getElementById('lb-list');
+  var selfEl = document.getElementById('lb-self');
+  var loginHint = document.getElementById('lb-login-hint');
+  var loadingEl = document.getElementById('lb-loading');
+
+  // 未登录
+  if (!isCloudLoggedIn()) {
+    listEl.innerHTML = '';
+    selfEl.innerHTML = '';
+    loginHint.style.display = 'block';
+    loadingEl.style.display = 'none';
+    return;
+  }
+  loginHint.style.display = 'none';
+  loadingEl.style.display = 'block';
+  listEl.innerHTML = '';
+  selfEl.innerHTML = '';
+
+  var orderBy = _lbMode === 'streak' ? 'daily_streak' : 'total_tests';
+  _sb.from('leaderboard')
+    .select('username,daily_streak,total_tests')
+    .eq('show_on_board', true)
+    .order(orderBy, { ascending: false })
+    .limit(50)
+    .then(function(res) {
+      loadingEl.style.display = 'none';
+      var data = res.data || [];
+      var myName = cloudUsername();
+      var myRank = -1;
+      var foundMe = false;
+
+      // 查找自己的排名（如果在列表内）
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].username === myName) { myRank = i; foundMe = true; break; }
+      }
+
+      // 渲染列表
+      if (data.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--text-sub)">还没有用户参与排名<br>快去完成一局测试吧！</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < data.length; i++) {
+        var row = data[i];
+        var rank = i + 1;
+        var isMe = row.username === myName;
+        var medalHtml = '';
+        var rowClass = '';
+        if (rank === 1)      { medalHtml = '<span class="lb-medal">🥇</span>'; rowClass = 'gold'; }
+        else if (rank === 2) { medalHtml = '<span class="lb-medal">🥈</span>'; rowClass = 'silver'; }
+        else if (rank === 3) { medalHtml = '<span class="lb-medal">🥉</span>'; rowClass = 'bronze'; }
+        else                 { medalHtml = '<span class="lb-rank">' + rank + '</span>'; }
+        if (isMe) rowClass += ' self';
+
+        var val = _lbMode === 'streak' ? row.daily_streak + ' 天' : row.total_tests + ' 题';
+        var nameDisplay = isMe ? '→ ' + escapeHtml(row.username) + ' (你)' : escapeHtml(row.username);
+
+        html += '<div class="lb-row ' + rowClass + '">'
+          + medalHtml
+          + '<span class="lb-name">' + nameDisplay + '</span>'
+          + '<span class="lb-value">' + val + '</span>'
+          + '</div>';
+      }
+      listEl.innerHTML = html;
+
+      // 如果自己不在前50名，在底部显示
+      if (!foundMe) {
+        // 查询自己的数据
+        var totalTests = 0;
+        appData.words.forEach(function(w) { totalTests += w.stats.totalAttempts; });
+        var myVal = _lbMode === 'streak' ? (appData.settings.dailyStreak || 0) + ' 天' : totalTests + ' 题';
+        selfEl.innerHTML = '<div style="font-size:12px;color:var(--text-sub);text-align:center;margin-bottom:4px">你的排名（未进前50）</div>'
+          + '<div class="lb-row self">'
+          + '<span class="lb-rank">-</span>'
+          + '<span class="lb-name">→ ' + escapeHtml(myName) + ' (你)</span>'
+          + '<span class="lb-value">' + myVal + '</span>'
+          + '</div>';
+      }
+    }).catch(function(err) {
+      loadingEl.style.display = 'none';
+      listEl.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--red)">加载失败，请检查网络</div>';
+    });
+}
+
+// 排行榜子标签切换
+document.addEventListener('click', function(e) {
+  if (!e.target.classList.contains('lb-tab')) return;
+  var mode = e.target.getAttribute('data-lb');
+  if (!mode) return;
+  _lbMode = mode;
+  document.querySelectorAll('.lb-tab').forEach(function(b) { b.classList.remove('active'); });
+  e.target.classList.add('active');
+  renderLeaderboard();
+});
 
 // --- 键盘快捷键 ---
 document.addEventListener('keydown', function(e) {
@@ -2867,6 +3693,7 @@ function resetStats() {
   appData.settings.dailyStreak = 0;
   appData.settings.highestStreak = 0;
   appData.settings.achievements = {};
+  appData.settings.hasCompletedQuiz = false;
   saveData();
   renderWordList();
   renderStats();
@@ -2931,6 +3758,103 @@ systemDark.addEventListener('change', function() {
     applyTheme('auto');
   }
 });
+
+// ============================================
+// 登录界面事件绑定
+// ============================================
+
+// 登录/注册按钮
+document.getElementById('btn-login-do').addEventListener('click', function() {
+  var username = document.getElementById('login-username').value.trim();
+  var password = document.getElementById('login-password').value;
+  if (!username) { showLoginError('请输入用户名'); return; }
+  if (!password) { showLoginError('请输入密码'); return; }
+  if (_isRegistering) {
+    cloudRegister(username, password);
+  } else {
+    cloudLogin(username, password);
+  }
+});
+
+// 回车登录
+document.getElementById('login-password').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('btn-login-do').click();
+});
+document.getElementById('login-username').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('login-password').focus();
+});
+
+// 切换登录/注册
+document.getElementById('login-switch').addEventListener('click', function() {
+  _isRegistering = !_isRegistering;
+  showLoginError('');
+  if (_isRegistering) {
+    document.getElementById('btn-login-do').textContent = '注 册';
+    document.getElementById('login-switch').innerHTML = '已有账号？<a>返回登录</a>';
+  } else {
+    document.getElementById('btn-login-do').textContent = '登 录';
+    document.getElementById('login-switch').innerHTML = '没有账号？<a>注册新账号</a>';
+  }
+});
+
+// 离线使用
+document.getElementById('login-skip').addEventListener('click', function() {
+  document.getElementById('login-overlay').style.display = 'none';
+  renderLoginStatus();
+});
+
+// 初始化云同步
+initCloud();
+
+// 检查是否已有登录会话
+(function checkSession() {
+  if (!_sb) {
+    // 未配置 Supabase，直接隐藏登录页，正常使用
+    document.getElementById('login-overlay').style.display = 'none';
+    renderLoginStatus();
+  } else {
+    // 尝试恢复会话
+    _sb.auth.getSession().then(function(res) {
+      if (res.data && res.data.session) {
+        // 已登录，拉取云端数据
+        var username = res.data.session.user.user_metadata.username || cloudUsername();
+        if (username) {
+          localStorage.setItem('sb-logged-in', '1');
+          localStorage.setItem('sb-username', username);
+          appData.settings.cloudUser = username;
+          document.getElementById('login-overlay').style.display = 'none';
+          cloudPull(function() {});
+        }
+      } else {
+        // 未登录，显示登录页
+        // 如果之前选择过离线模式，跳过登录
+        if (appData.settings.cloudUser === null && localStorage.getItem('sb-skipped')) {
+          document.getElementById('login-overlay').style.display = 'none';
+        }
+      }
+      renderLoginStatus();
+    }).catch(function() {
+      renderLoginStatus();
+    });
+  }
+
+  // 离线跳过标记
+  if (document.getElementById('login-overlay').style.display !== 'none') {
+    // 用户需要看到登录页，点击离线使用后记住选择
+    var skipBtn = document.getElementById('login-skip');
+    var origSkip = skipBtn.onclick;
+    skipBtn.addEventListener('click', function() {
+      localStorage.setItem('sb-skipped', '1');
+    });
+  }
+})();
+
+// 更新 renderSettingsPage 也刷新云同步状态
+var _origRenderSettings2 = renderSettingsPage;
+renderSettingsPage = function() {
+  _origRenderSettings2();
+  renderLoginStatus();
+};
 
 renderWordList();
 renderQuizPage();
